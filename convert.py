@@ -10,7 +10,6 @@ class CoordinateConversion(object):
         self.K0 = 0.9996 # Scale factor
         self.e = sqrt(1 - (self.polarRadius / self.equatorialRadius)**2) # eccentricity
         self.e1sq = self.e * self.e / (1 - self.e * self.e)
-        self.radArcSecond = radians(1)/3600
         self.A0 = 6367449.146
         self.B0 = 16038.42955
         self.C0 = 16.83261333
@@ -28,8 +27,8 @@ class CoordinateConversion(object):
 
         # Calculate values for easting and northing 
         radLatitude = radians(latitude)
-        nu = self.equatorialRadius / sqrt(1 - (self.e * sin(radLatitude))**2)
-        p = (longitude - ((6*longZone) - 183)) * 3600 / 10000
+        nu = self.equatorialRadius / sqrt(1 - (self.e**2 * sin(radLatitude)**2))
+        p = radians((longitude - ((6*longZone) - 183)))
  
         # Calculate Easting and Northing
         easting = self._getEasting(radLatitude, nu, p)
@@ -64,16 +63,16 @@ class CoordinateConversion(object):
             return DEGREE_LETTERS[prevDegree]
 
     def _getEasting(self, radLatitude, nu, p):
-        K4 = nu * cos(radLatitude) * self.radArcSecond * self.K0 * 10000
-        K5 = (self.radArcSecond * cos(radLatitude))**3 * (nu/6) * (1 - tan(radLatitude)**2 + self.e1sq * cos(radLatitude)**2) * self.K0 * 1000000000000
+        K4 = nu * cos(radLatitude) * self.K0
+        K5 = (self.K0 * nu * cos(radLatitude)**3 / 6) * (1 - tan(radLatitude)**2 + self.e1sq * cos(radLatitude)**2)
 
         return int(500000 + (K4 * p + K5 * p**3))
 
     def _getNorthing(self, radLatitude, nu, p):
         s = self.A0 * radLatitude - self.B0 * sin(2 * radLatitude) + self.C0 * sin(4 * radLatitude) - self.D0 * sin(6 * radLatitude) + self.E0 * sin(8 * radLatitude)
         K1 = s * self.K0
-        K2 = nu * sin(radLatitude) * cos(radLatitude) * self.radArcSecond**2 * self.K0 * 100000000 / 2
-        K3 = ((self.radArcSecond**4 * nu * sin(radLatitude) * cos(radLatitude)**3) / 24) * (5 - tan(radLatitude)**2 + 9 * self.e1sq * cos(radLatitude)**2 + 4 * self.e1sq**2 * cos(radLatitude)**4) * self.K0 * 10000000000000000
+        K2 = self.K0 * nu * sin(2 * radLatitude) / 4
+        K3 = (self.K0 * nu * sin(radLatitude) * cos(radLatitude)**3 / 24) * (5 - tan(radLatitude)**2 + 9 * self.e1sq * cos(radLatitude)**2 + 4 * self.e1sq**2 * cos(radLatitude)**4)
 
         northing = int(K1 + K2 * p * p + K3 * p**4)
 	if degrees(radLatitude) < 0:
